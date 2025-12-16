@@ -58,7 +58,7 @@ export const useLoginMutation = () => {
         throw new Error(data.exception?.message || 'Login failed');
       }
 
-      console.log('accessToken', data);
+      console.log('accessToken data', data);
 
       // Save tokens automatically on success
       const { accessToken, refreshToken } = data.item;
