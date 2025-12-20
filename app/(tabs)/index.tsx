@@ -1,5 +1,6 @@
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import React, { useEffect, useState } from 'react';
 import {
   ScrollView,
   StyleSheet,
@@ -8,10 +9,23 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { tokenStorage } from '@/utils/token';
 
 export default function HomeScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+    tokenStorage.getAccessToken().then((token) => {
+      if (!isMounted) return;
+      setIsLoggedIn(Boolean(token));
+    });
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   return (
     <View style={styles.container}>
@@ -28,19 +42,21 @@ export default function HomeScreen() {
         <View style={styles.header}>
           <Text style={styles.logo}>voco</Text>
           <Text style={styles.tagline}>AI와 함께하는 영어 회화</Text>
-          <TouchableOpacity
-            style={{
-              marginTop: 20,
-              backgroundColor: '#6C5CE7',
-              padding: 10,
-              borderRadius: 8,
-            }}
-            onPress={() => router.push('/auth')}
-          >
-            <Text style={{ color: 'white', fontWeight: 'bold' }}>
-              로그인 / 회원가입 테스트
-            </Text>
-          </TouchableOpacity>
+          {isLoggedIn === false && (
+            <TouchableOpacity
+              style={{
+                marginTop: 20,
+                backgroundColor: '#6C5CE7',
+                padding: 10,
+                borderRadius: 8,
+              }}
+              onPress={() => router.push('/auth')}
+            >
+              <Text style={{ color: 'white', fontWeight: 'bold' }}>
+                로그인 / 회원가입
+              </Text>
+            </TouchableOpacity>
+          )}
         </View>
 
         {/* 메인 카드 */}

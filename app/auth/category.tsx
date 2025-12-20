@@ -1,9 +1,13 @@
+import { useSocialSignUpMutation } from '@/apis/members';
 import { SelectionCard } from '@/components/common/SelectionCard';
 import { Colors } from '@/constants/colors';
+import { useSocialSignUp } from '@/hooks/use-social-signup';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
+  ActivityIndicator,
+  Alert,
   ScrollView,
   StyleSheet,
   Text,
@@ -13,26 +17,44 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const CATEGORIES = [
-  { id: 'daily', title: 'Daily Life', icon: 'coffee' as const },
-  { id: 'business', title: 'Business', icon: 'laptop' as const },
-  { id: 'travel', title: 'Travel', icon: 'car' as const },
-  { id: 'tech', title: 'Technology', icon: 'code' as const },
-  { id: 'hobby', title: 'Hobbies', icon: 'camerao' as const },
-  { id: 'culture', title: 'Culture', icon: 'book' as const },
+  { id: 'DAILY' as const, title: 'Daily Life', icon: 'coffee' as const },
+  { id: 'BUSINESS' as const, title: 'Business', icon: 'laptop' as const },
 ];
 
 export default function CategoryScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const { draft, toggleCategory, reset } = useSocialSignUp();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { mutate: signUp } = useSocialSignUpMutation();
+
+  useEffect(() => {
+    if (!draft) router.replace('/auth');
+  }, [draft, router]);
 
   const handleComplete = () => {
-    if (selectedCategory) {
-      // TODO: Save preferences
-      // For now, navigate to main app (assuming main app is at /)
-      // Or go back to a 'success' state, but user likely wants to enter the app
-      router.replace('/');
-    }
+    if (!draft || draft.categories.length === 0 || !draft.level) return;
+    setIsSubmitting(true);
+    signUp(
+      {
+        provider: draft.provider,
+        idToken: draft.idToken,
+        koreanName: draft.koreanName,
+        englishName: draft.englishName,
+        level: draft.level,
+        categories: draft.categories,
+      },
+      {
+        onSuccess: () => {
+          reset();
+          router.replace('/');
+        },
+        onError: (error: any) => {
+          setIsSubmitting(false);
+          Alert.alert('Sign Up Failed', error?.message || 'Please try again.');
+        },
+      }
+    );
   };
 
   return (
@@ -48,7 +70,7 @@ export default function CategoryScreen() {
           <Text style={styles.stepIndicator}>Step 3 of 3</Text>
           <Text style={styles.title}>Interests</Text>
           <Text style={styles.subtitle}>
-            What topics do you enjoy discussing? Select one main interest.
+            What topics do you enjoy discussing? Select one or more.
           </Text>
         </View>
 
@@ -58,19 +80,27 @@ export default function CategoryScreen() {
               key={category.id}
               title={category.title}
               iconName={category.icon}
-              isSelected={selectedCategory === category.id}
-              onPress={() => setSelectedCategory(category.id)}
+              isSelected={draft?.categories.includes(category.id) ?? false}
+              onPress={() => toggleCategory(category.id)}
             />
           ))}
         </View>
 
         <TouchableOpacity
-          style={[styles.button, !selectedCategory && styles.buttonDisabled]}
+          style={[
+            styles.button,
+            (!(draft?.categories.length ?? 0) || isSubmitting) &&
+              styles.buttonDisabled,
+          ]}
           onPress={handleComplete}
-          disabled={!selectedCategory}
+          disabled={!(draft?.categories.length ?? 0) || isSubmitting}
           activeOpacity={0.8}
         >
-          <Text style={styles.buttonText}>Start Learning</Text>
+          {isSubmitting ? (
+            <ActivityIndicator color={Colors.white} />
+          ) : (
+            <Text style={styles.buttonText}>Complete Sign Up</Text>
+          )}
         </TouchableOpacity>
       </ScrollView>
     </View>

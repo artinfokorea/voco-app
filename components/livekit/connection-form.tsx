@@ -11,6 +11,7 @@ interface ConnectionFormProps {
   onServerUrlChange: (url: string) => void;
   token: string;
   onTokenChange: (token: string) => void;
+  hasTokenEndpoint?: boolean;
   isConnecting: boolean;
   onConnect: () => void;
   onBack: () => void;
@@ -21,6 +22,7 @@ export function ConnectionForm({
   onServerUrlChange,
   token,
   onTokenChange,
+  hasTokenEndpoint = false,
   isConnecting,
   onConnect,
   onBack,
@@ -34,32 +36,36 @@ export function ConnectionForm({
         <Text style={styles.statusText}>연결 안됨</Text>
       </View>
 
-      <View style={styles.inputContainer}>
-        <Text style={styles.label}>서버 URL</Text>
-        <TextInput
-          style={styles.input}
-          value={serverUrl}
-          onChangeText={onServerUrlChange}
-          placeholder="wss://your-server.livekit.cloud"
-          placeholderTextColor="#666"
-          autoCapitalize="none"
-          autoCorrect={false}
-        />
-      </View>
+      {!hasTokenEndpoint && (
+        <View style={styles.inputContainer}>
+          <Text style={styles.label}>서버 URL</Text>
+          <TextInput
+            style={styles.input}
+            value={serverUrl}
+            onChangeText={onServerUrlChange}
+            placeholder="wss://your-server.livekit.cloud"
+            placeholderTextColor="#666"
+            autoCapitalize="none"
+            autoCorrect={false}
+          />
+        </View>
+      )}
 
-      <View style={styles.inputContainer}>
-        <Text style={styles.label}>토큰</Text>
-        <TextInput
-          style={[styles.input, styles.tokenInput]}
-          value={token}
-          onChangeText={onTokenChange}
-          placeholder="access token"
-          placeholderTextColor="#666"
-          autoCapitalize="none"
-          autoCorrect={false}
-          multiline
-        />
-      </View>
+      {!hasTokenEndpoint && (
+        <View style={styles.inputContainer}>
+          <Text style={styles.label}>토큰</Text>
+          <TextInput
+            style={[styles.input, styles.tokenInput]}
+            value={token}
+            onChangeText={onTokenChange}
+            placeholder="access token"
+            placeholderTextColor="#666"
+            autoCapitalize="none"
+            autoCorrect={false}
+            multiline
+          />
+        </View>
+      )}
 
       <TouchableOpacity
         style={[styles.connectButton, isConnecting && styles.buttonDisabled]}
@@ -67,7 +73,7 @@ export function ConnectionForm({
         disabled={isConnecting}
       >
         <Text style={styles.connectButtonText}>
-          {isConnecting ? '연결 중...' : '🎙️ 연결하기'}
+          {isConnecting ? '연결 중...' : hasTokenEndpoint ? '🎙️ 시작하기' : '🎙️ 연결하기'}
         </Text>
       </TouchableOpacity>
 

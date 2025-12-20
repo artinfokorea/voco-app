@@ -1,8 +1,9 @@
 import { SelectionCard } from '@/components/common/SelectionCard';
 import { Colors } from '@/constants/colors';
+import { useSocialSignUp } from '@/hooks/use-social-signup';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   ScrollView,
   StyleSheet,
@@ -12,34 +13,44 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+type Level = 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED';
+
 const LEVELS = [
   {
-    id: 'beginner',
+    id: 'BEGINNER' as const,
     title: 'Beginner',
     description: 'I can understand simple words and phrases.',
-    icon: 'staro' as const,
+    icon: 'smile' as const,
   },
   {
-    id: 'intermediate',
+    id: 'INTERMEDIATE' as const,
     title: 'Intermediate',
     description: 'I can have simple conversations on familiar topics.',
-    icon: 'star' as const,
+    icon: 'trophy' as const,
   },
   {
-    id: 'advanced',
+    id: 'ADVANCED' as const,
     title: 'Advanced',
     description: 'I can express myself fluently and spontaneously.',
-    icon: 'rocket1' as const,
+    icon: 'rocket' as const,
   },
 ];
 
 export default function LevelScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const [selectedLevel, setSelectedLevel] = useState<string | null>(null);
+  const { draft, setLevel } = useSocialSignUp();
+  const [selectedLevel, setSelectedLevel] = useState<Level | null>(
+    draft?.level ?? null
+  );
+
+  useEffect(() => {
+    if (!draft) router.replace('/auth');
+  }, [draft, router]);
 
   const handleContinue = () => {
     if (selectedLevel) {
+      setLevel(selectedLevel);
       router.push('/auth/category');
     }
   };

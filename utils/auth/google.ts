@@ -1,26 +1,54 @@
 import {
   GoogleSignin,
   statusCodes,
-  User,
 } from '@react-native-google-signin/google-signin';
+
+export type GoogleLoginResult = {
+  idToken: string | null;
+  accessToken: string | null;
+  serverAuthCode?: string | null;
+  scopes?: string[];
+  user: {
+    email: string;
+    familyName?: string | null;
+    givenName?: string | null;
+    id: string;
+    name: string;
+    photo?: string | null;
+  };
+};
 
 // Initialize Google Sign-In
 // TODO: Replace with real webClientId (from Firebase/Google Cloud)
 GoogleSignin.configure({
   webClientId:
     '672075303326-7j3ru5kkq0mev7djqiu5ml5bmght56dh.apps.googleusercontent.com',
+  // If `GoogleService-Info.plist` isn't bundled into the iOS app (common with existing `ios/`),
+  // passing `iosClientId` avoids the "failed to determine clientID" crash.
+  iosClientId:
+    process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID ??
+    '672075303326-kfmoel6er82sn53hbglkrjlv4mtqsuin.apps.googleusercontent.com',
   offlineAccess: true,
 });
 
-export const loginWithGoogle = async (): Promise<User | null> => {
+export const loginWithGoogle = async (): Promise<GoogleLoginResult | null> => {
   try {
     await GoogleSignin.hasPlayServices();
-    const response = await GoogleSignin.signIn();
-    // The response structure depends on the version, ensuring we return User
-    if (response.data) {
-      return response.data;
-    }
-    return response as unknown as User;
+    const response: any = await GoogleSignin.signIn();
+    const userData = response?.data?.user ?? response?.user;
+    const serverAuthCode =
+      response?.data?.serverAuthCode ?? response?.serverAuthCode;
+    const scopes = response?.data?.scopes ?? response?.scopes;
+
+    const tokens = await GoogleSignin.getTokens();
+
+    return {
+      idToken: tokens?.accessToken ?? null,
+      accessToken: tokens?.accessToken ?? null,
+      serverAuthCode,
+      scopes,
+      user: userData,
+    };
   } catch (error: any) {
     if (error.code === statusCodes.SIGN_IN_CANCELLED) {
       // user cancelled the login flow

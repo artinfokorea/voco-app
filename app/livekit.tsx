@@ -25,6 +25,7 @@ export default function LiveKitScreen() {
     setServerUrl,
     token,
     setToken,
+    hasTokenEndpoint,
     isMicEnabled,
     participants,
     messages,
@@ -43,6 +44,7 @@ export default function LiveKitScreen() {
           onServerUrlChange={setServerUrl}
           token={token}
           onTokenChange={setToken}
+          hasTokenEndpoint={hasTokenEndpoint}
           isConnecting={isConnecting}
           onConnect={connect}
           onBack={() => router.back()}

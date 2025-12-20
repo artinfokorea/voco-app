@@ -54,10 +54,10 @@ export function SelectionCard({
       </View>
       <View style={styles.checkIcon}>
         {isSelected ? (
-          <AntDesign name="checkcircle" size={24} color={Colors.white} />
+          <AntDesign name="check-circle" size={24} color={Colors.white} />
         ) : (
           <AntDesign
-            name="checkcircleo"
+            name="check-circle"
             size={24}
             color={Colors.textSecondary}
           />

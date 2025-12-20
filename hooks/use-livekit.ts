@@ -1,4 +1,5 @@
 import { LIVEKIT_CONFIG } from '@/constants/livekit';
+import { fetchLiveKitToken } from '@/utils/livekit/token';
 import { AudioSession, registerGlobals } from '@livekit/react-native';
 import {
   ConnectionState,
@@ -33,6 +34,9 @@ export interface UseLiveKitReturn {
   setServerUrl: (url: string) => void;
   token: string;
   setToken: (token: string) => void;
+  roomName: string;
+  setRoomName: (roomName: string) => void;
+  hasTokenEndpoint: boolean;
 
   // 음성 상태
   isMicEnabled: boolean;
@@ -51,6 +55,7 @@ export interface UseLiveKitReturn {
 export function useLiveKit(): UseLiveKitReturn {
   const [serverUrl, setServerUrl] = useState(LIVEKIT_CONFIG.serverUrl);
   const [token, setToken] = useState('');
+  const [roomName, setRoomName] = useState(LIVEKIT_CONFIG.defaultRoom);
   const [connectionState, setConnectionState] = useState<ConnectionState>(
     ConnectionState.Disconnected
   );
@@ -153,17 +158,31 @@ export function useLiveKit(): UseLiveKitReturn {
       Alert.alert('오류', 'LiveKit 서버 URL을 입력해주세요.');
       return;
     }
-    if (!token) {
-      Alert.alert('오류', '토큰을 입력해주세요.');
-      return;
-    }
 
     try {
       setIsConnecting(true);
+      let resolvedToken = token;
+      if (!resolvedToken && LIVEKIT_CONFIG.tokenEndpoint) {
+        resolvedToken = await fetchLiveKitToken({
+          room: roomName,
+          identity: `user-${Date.now()}`,
+        });
+        setToken(resolvedToken);
+      }
+      if (!resolvedToken) {
+        Alert.alert(
+          '오류',
+          LIVEKIT_CONFIG.tokenEndpoint
+            ? '토큰 발급에 실패했습니다.'
+            : '토큰을 입력해주세요.'
+        );
+        return;
+      }
+
       const newRoom = new Room();
       setupRoomEvents(newRoom);
 
-      await newRoom.connect(serverUrl, token);
+      await newRoom.connect(serverUrl, resolvedToken);
       await newRoom.localParticipant.setMicrophoneEnabled(true);
 
       const existingParticipants = Array.from(
@@ -182,7 +201,7 @@ export function useLiveKit(): UseLiveKitReturn {
     } finally {
       setIsConnecting(false);
     }
-  }, [serverUrl, token, setupRoomEvents, addSystemMessage]);
+  }, [serverUrl, token, roomName, setupRoomEvents, addSystemMessage]);
 
   // 방 연결 해제
   const disconnect = useCallback(async () => {
@@ -246,6 +265,9 @@ export function useLiveKit(): UseLiveKitReturn {
     setServerUrl,
     token,
     setToken,
+    roomName,
+    setRoomName,
+    hasTokenEndpoint: Boolean(LIVEKIT_CONFIG.tokenEndpoint),
     isMicEnabled,
     participants,
     messages,

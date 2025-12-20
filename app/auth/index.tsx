@@ -1,18 +1,15 @@
 import { useLoginMutation } from '@/apis/auth';
-import { InputField } from '@/components/auth/InputField';
 import { SocialButton } from '@/components/auth/SocialButton';
 import { Colors } from '@/constants/colors';
-import { loginWithApple } from '@/utils/auth/apple';
+import { useSocialSignUp } from '@/hooks/use-social-signup';
 import { loginWithGoogle } from '@/utils/auth/google';
-import { loginWithKakao } from '@/utils/auth/kakao';
+import { tokenStorage } from '@/utils/token';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
-  KeyboardAvoidingView,
-  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -24,70 +21,76 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 export default function AuthScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const [isLogin, setIsLogin] = useState(true);
+  const [mode, setMode] = useState<'login' | 'signup'>('login');
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const { mutate: login, isPending } = useLoginMutation();
+  const { start, setNames, reset } = useSocialSignUp();
 
-  const handleServerLogin = (
-    provider: 'GOOGLE' | 'APPLE' | 'KAKAO',
-    idToken: string
-  ) => {
-    login(
-      { provider, idToken },
-      {
-        onSuccess: () => {
-          router.push('/auth/level');
-        },
-        onError: (error) => {
-          console.error(error);
-          Alert.alert('Login Failed', error.message || 'Something went wrong');
-        },
-      }
-    );
-  };
-
-  const onKakaoLogin = async () => {
-    try {
-      const { accessToken } = await loginWithKakao();
-      // Use accessToken as idToken for Kakao if that's what backend expects,
-      // or if backend expects id_token specifically, we might need to adjust `loginWithKakao`.
-      // Assuming accessToken is sufficient for Kakao "idToken" param based on typical setups unless specified otherwise.
-      handleServerLogin('KAKAO', accessToken);
-    } catch (e) {
-      console.error(e);
-      Alert.alert('Kakao Login Failed', 'Please try again.');
-    }
-  };
+  useEffect(() => {
+    let isMounted = true;
+    tokenStorage
+      .getAccessToken()
+      .then((token) => {
+        if (!isMounted) return;
+        if (token) router.replace('/');
+      })
+      .finally(() => {
+        if (!isMounted) return;
+        setIsCheckingAuth(false);
+      });
+    return () => {
+      isMounted = false;
+    };
+  }, [router]);
 
   const onGoogleLogin = async () => {
     try {
       const user = await loginWithGoogle();
-      if (user && user.idToken) {
-        handleServerLogin('GOOGLE', user.idToken);
+      if (!user?.accessToken) {
+        Alert.alert('구글 로그인 실패', 'accessToken을 가져오지 못했어요.');
+        return;
       }
+
+      login(
+        { provider: 'GOOGLE', idToken: user.accessToken },
+        {
+          onSuccess: () => {
+            reset();
+            router.replace('/');
+          },
+          onError: (error: any) => {
+            Alert.alert(
+              '로그인 실패',
+              error?.message ||
+                '계정이 없으신 경우 회원가입 버튼을 눌러 진행해주세요.'
+            );
+          },
+        }
+      );
     } catch (e) {
       console.error(e);
-      Alert.alert('Google Login Failed', 'Please try again.');
+      Alert.alert('구글 로그인 실패', '다시 시도해주세요.');
     }
   };
 
-  const onAppleLogin = async () => {
+  const onGoogleSignUp = async () => {
     try {
-      const credential = await loginWithApple();
-      if (credential && credential.identityToken) {
-        handleServerLogin('APPLE', credential.identityToken);
+      const user = await loginWithGoogle();
+      if (!user?.accessToken) {
+        Alert.alert('구글 회원가입 실패', 'accessToken을 가져오지 못했어요.');
+        return;
       }
+
+      start({ provider: 'GOOGLE', idToken: user.accessToken });
+      setNames({ koreanName: '', englishName: user.user?.name ?? '' });
+      router.push('/auth/social-signup');
     } catch (e) {
       console.error(e);
-      Alert.alert('Apple Login Failed', 'Please try again.');
+      Alert.alert('구글 회원가입 실패', '다시 시도해주세요.');
     }
   };
 
-  const handleEmailAuth = () => {
-    // Mock email login for now
-    router.push('/auth/level');
-  };
-
-  if (isPending) {
+  if (isCheckingAuth || isPending) {
     return (
       <View style={[styles.container, styles.loadingContainer]}>
         <ActivityIndicator size="large" color={Colors.primary} />
@@ -98,97 +101,60 @@ export default function AuthScreen() {
   return (
     <View style={styles.container}>
       <StatusBar style="light" />
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={{ flex: 1 }}
+      <ScrollView
+        contentContainerStyle={[
+          styles.scrollContent,
+          { paddingTop: insets.top + 40, paddingBottom: insets.bottom + 20 },
+        ]}
+        showsVerticalScrollIndicator={false}
       >
-        <ScrollView
-          contentContainerStyle={[
-            styles.scrollContent,
-            { paddingTop: insets.top + 40, paddingBottom: insets.bottom + 20 },
-          ]}
-          showsVerticalScrollIndicator={false}
-        >
-          <View style={styles.header}>
-            <Text style={styles.title}>
-              {isLogin ? 'Welcome Back' : 'Create Account'}
-            </Text>
-            <Text style={styles.subtitle}>
-              {isLogin
-                ? 'Sign in to continue your journey'
-                : 'Join us and start learning today'}
-            </Text>
-          </View>
+        <View style={styles.header}>
+          <Text style={styles.title}>
+            {mode === 'login' ? '로그인' : '회원가입'}
+          </Text>
+          <Text style={styles.subtitle}>
+            {mode === 'login'
+              ? '구글 계정으로 로그인하세요.'
+              : '구글 계정으로 회원가입을 진행하세요.'}
+          </Text>
+        </View>
 
-          <View style={styles.form}>
-            {!isLogin && (
-              <InputField
-                iconName="user"
-                placeholder="Full Name"
-                autoCapitalize="words"
-              />
-            )}
-            <InputField
-              iconName="mail"
-              placeholder="Email Address"
-              keyboardType="email-address"
-              autoCapitalize="none"
-            />
-            <InputField iconName="lock" placeholder="Password" isPassword />
-
-            <TouchableOpacity
-              style={styles.submitButton}
-              onPress={handleEmailAuth}
-              activeOpacity={0.8}
-            >
-              <Text style={styles.submitButtonText}>
-                {isLogin ? 'Sign In' : 'Sign Up'}
-              </Text>
-            </TouchableOpacity>
-
-            <View style={styles.divider}>
-              <View style={styles.dividerLine} />
-              <Text style={styles.dividerText}>OR</Text>
-              <View style={styles.dividerLine} />
-            </View>
-
-            <SocialButton
-              iconName="wechat"
-              label="Continue with Kakao"
-              onPress={onKakaoLogin}
-              color="#3A1D1D"
-              backgroundColor="#FEE500"
-            />
+        <View style={styles.form}>
+          {mode === 'login' ? (
             <SocialButton
               iconName="google"
-              label="Continue with Google"
+              label="구글로 로그인"
               onPress={onGoogleLogin}
               color="#000"
               backgroundColor="#FFF"
             />
+          ) : (
             <SocialButton
-              iconName="apple"
-              label="Continue with Apple"
-              onPress={onAppleLogin}
-              color="#FFF"
-              backgroundColor="#000"
+              iconName="google"
+              label="구글로 회원가입"
+              onPress={onGoogleSignUp}
+              color="#000"
+              backgroundColor="#FFF"
             />
-          </View>
+          )}
 
           <View style={styles.footer}>
             <Text style={styles.footerText}>
-              {isLogin
-                ? "Don't have an account? "
-                : 'Already have an account? '}
+              {mode === 'login'
+                ? '계정이 없으신가요? '
+                : '이미 계정이 있으신가요? '}
             </Text>
-            <TouchableOpacity onPress={() => setIsLogin(!isLogin)}>
+            <TouchableOpacity
+              onPress={() => setMode(mode === 'login' ? 'signup' : 'login')}
+              activeOpacity={0.8}
+            >
               <Text style={styles.footerLink}>
-                {isLogin ? 'Sign Up' : 'Sign In'}
+                {mode === 'login' ? '회원가입' : '로그인'}
               </Text>
             </TouchableOpacity>
           </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
+        </View>
+      </ScrollView>
     </View>
   );
 }
@@ -218,49 +184,13 @@ const styles = StyleSheet.create({
   form: {
     flex: 1,
     marginBottom: 24,
-  },
-  submitButton: {
-    backgroundColor: Colors.primary,
-    height: 56,
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: 8,
-    marginBottom: 24,
-    shadowColor: Colors.primary,
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  submitButtonText: {
-    color: Colors.white,
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  divider: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-  },
-  dividerText: {
-    color: Colors.textSecondary,
-    paddingHorizontal: 16,
-    fontSize: 14,
+    gap: 12,
   },
   footer: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 'auto',
+    marginTop: 8,
   },
   footerText: {
     color: Colors.textSecondary,

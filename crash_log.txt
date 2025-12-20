@@ -1,0 +1,2 @@
+--------- beginning of main
+12-18 22:07:17.639 18148 18148 W libbinder.BackendUnifiedServiceManager: Thread Pool max thread count is 0. Cannot cache binder as linkToDeath cannot be implemented. serviceName: package

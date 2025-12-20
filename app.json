@@ -5,7 +5,7 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": ["voco", "kakaoYOUR_KAKAO_APP_KEY_HERE"],
+    "scheme": ["voco"],
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
@@ -77,19 +77,22 @@
       "@config-plugins/react-native-webrtc",
       "expo-secure-store",
       [
-        "@react-native-seoul/kakao-login",
-        {
-          "kakaoAppKey": "YOUR_KAKAO_APP_KEY_HERE",
-          "kotlinVersion": "1.9.0"
-        }
-      ],
-      [
         "@react-native-google-signin/google-signin",
         {
           "iosUrlScheme": "com.googleusercontent.apps.672075303326-kfmoel6er82sn53hbglkrjlv4mtqsuin"
         }
       ],
-      "expo-apple-authentication"
+      [
+        "./plugins/withCodePush.js",
+        {
+          "android": {
+            "CodePushDeploymentKey": "ANDROID_DEPLOYMENT_KEY_HERE"
+          },
+          "ios": {
+            "CodePushDeploymentKey": "IOS_DEPLOYMENT_KEY_HERE"
+          }
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

@@ -23,15 +23,35 @@ export interface ServerResponse<T> {
   item: T;
 }
 
+export type ServerError = Error & {
+  errorNo?: string;
+  validation?: Record<string, string>;
+};
+
+export const createServerError = (
+  data: ServerResponse<unknown>
+): ServerError => {
+  const error = new Error(
+    data.exception?.message || 'Request failed'
+  ) as ServerError;
+  error.errorNo = data.exception?.errorNo;
+  error.validation = data.exception?.validation ?? undefined;
+  return error;
+};
+
 // --- API Functions ---
 const authApi = {
   login: async (data: LoginRequest): Promise<ServerResponse<AuthTokens>> => {
     // POST to /auth/sign-in/social
-    const response = await apiClient.post<ServerResponse<AuthTokens>>(
-      '/auth/sign-in/social',
-      data
-    );
-    return response.data;
+    const response = await apiClient.post('auth/sign-in/social', data);
+
+    const serverData = response.data;
+
+    console.log('serverData', serverData);
+    if (serverData.type === 'FAIL' || !serverData.item) {
+      throw createServerError(serverData as ServerResponse<unknown>);
+    }
+    return serverData;
   },
 
   logout: async () => {
@@ -53,13 +73,6 @@ export const useLoginMutation = () => {
   return useMutation({
     mutationFn: authApi.login,
     onSuccess: async (data) => {
-      // Check for logical failure even if HTTP status was 200
-      if (data.type === 'FAIL' || !data.item) {
-        throw new Error(data.exception?.message || 'Login failed');
-      }
-
-      console.log('accessToken data', data);
-
       // Save tokens automatically on success
       const { accessToken, refreshToken } = data.item;
       await tokenStorage.setAccessToken(accessToken);
