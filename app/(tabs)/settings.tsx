@@ -2,6 +2,7 @@ import { useLogoutMutation } from '@/apis/auth';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { tokenStorage } from '@/utils/token';
+import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
@@ -42,6 +43,20 @@ export default function SettingsScreen() {
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       <Text style={[styles.title, { color: theme.text }]}>설정</Text>
+
+      {isLoggedIn && (
+        <TouchableOpacity
+          style={[styles.menuItem, { backgroundColor: theme.card }]}
+          onPress={() => router.push('/notification-schedules')}
+          activeOpacity={0.7}
+        >
+          <View style={styles.menuItemLeft}>
+            <Ionicons name="notifications-outline" size={22} color={theme.tint} />
+            <Text style={[styles.menuItemText, { color: theme.text }]}>알림 스케줄</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color={theme.textSecondary} />
+        </TouchableOpacity>
+      )}
 
       {isLoggedIn ? (
         <TouchableOpacity
@@ -88,6 +103,23 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: '700',
     marginBottom: 16,
+  },
+  menuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 12,
+  },
+  menuItemLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  menuItemText: {
+    fontSize: 16,
+    fontWeight: '500',
   },
   button: {
     height: 52,

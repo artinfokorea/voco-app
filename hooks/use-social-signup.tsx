@@ -1,4 +1,5 @@
-import type { MemberCategory, MemberLevel, SocialProvider } from '@/apis/members';
+import type { SocialProvider } from '@/apis/members';
+import { Category, Level } from '@/constants/enums';
 import React, { createContext, useContext, useMemo, useState } from 'react';
 
 type SignupDraft = {
@@ -6,16 +7,16 @@ type SignupDraft = {
   idToken: string;
   koreanName: string;
   englishName: string;
-  level: MemberLevel | null;
-  categories: MemberCategory[];
+  level: Level | null;
+  categories: Category[];
 };
 
 type SocialSignUpContextValue = {
   draft: SignupDraft | null;
   start: (seed: { provider: SocialProvider; idToken: string }) => void;
   setNames: (names: { koreanName: string; englishName: string }) => void;
-  setLevel: (level: MemberLevel) => void;
-  toggleCategory: (category: MemberCategory) => void;
+  setLevel: (level: Level) => void;
+  toggleCategory: (category: Category) => void;
   reset: () => void;
 };
 

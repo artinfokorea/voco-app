@@ -1,31 +1,43 @@
-import { LIVEKIT_CONFIG } from '@/constants/livekit';
+import { apiClient } from '@/utils/api-client';
 
 export type LiveKitTokenResponse = {
-  token: string;
+  type: 'SUCCESS' | 'FAIL';
+  exception?: {
+    errorNo: string;
+    message: string;
+    validation?: Record<string, string>;
+  };
+  item?: {
+    token: string;
+    roomName: string;
+  };
 };
 
-export async function fetchLiveKitToken(params: {
-  room: string;
-  identity: string;
-  name?: string;
-}) {
-  if (!LIVEKIT_CONFIG.tokenEndpoint) {
-    throw new Error('LiveKit token endpoint is not configured');
-  }
+export async function fetchLiveKitToken(): Promise<{
+  token: string;
+  roomName: string;
+}> {
+  console.log('[LiveKit] fetchLiveKitToken request');
 
-  const url = new URL(LIVEKIT_CONFIG.tokenEndpoint);
-  url.searchParams.set('room', params.room);
-  url.searchParams.set('identity', params.identity);
-  if (params.name) url.searchParams.set('name', params.name);
+  try {
+    const response = await apiClient.post<LiveKitTokenResponse>(
+      '/livekit/token'
+    );
+    console.log('[LiveKit] fetchLiveKitToken response', response.status);
 
-  const response = await fetch(url.toString());
-  if (!response.ok) {
-    throw new Error(`Token request failed (${response.status})`);
+    const data = response.data;
+
+    if (data.type === 'FAIL' || !data.item) {
+      const message = data.exception?.message || 'Token request failed';
+      throw new Error(message);
+    }
+
+    return {
+      token: data.item.token,
+      roomName: data.item.roomName,
+    };
+  } catch (error) {
+    console.log('[LiveKit] fetchLiveKitToken error', String(error));
+    throw error;
   }
-  const data = (await response.json()) as LiveKitTokenResponse;
-  if (!data?.token) {
-    throw new Error('Token response missing token');
-  }
-  return data.token;
 }
-

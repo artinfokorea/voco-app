@@ -1,6 +1,7 @@
 import { useSocialSignUpMutation } from '@/apis/members';
 import { SelectionCard } from '@/components/common/SelectionCard';
 import { Colors } from '@/constants/colors';
+import { Category } from '@/constants/enums';
 import { useSocialSignUp } from '@/hooks/use-social-signup';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -17,8 +18,10 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const CATEGORIES = [
-  { id: 'DAILY' as const, title: 'Daily Life', icon: 'coffee' as const },
-  { id: 'BUSINESS' as const, title: 'Business', icon: 'laptop' as const },
+  { id: Category.DAILY, title: 'Daily Life', icon: 'coffee' as const },
+  { id: Category.BUSINESS, title: 'Business', icon: 'laptop' as const },
+  { id: Category.TRAVEL, title: 'Travel', icon: 'plane' as const },
+  { id: Category.SHOPPING, title: 'Shopping', icon: 'shopping-cart' as const },
 ];
 
 export default function CategoryScreen() {

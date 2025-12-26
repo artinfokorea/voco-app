@@ -3,22 +3,20 @@ import authApi, {
   ServerResponse,
   createServerError,
 } from '@/apis/auth';
+import { Category, Level } from '@/constants/enums';
 import { apiClient } from '@/utils/api-client';
 import { tokenStorage } from '@/utils/token';
 import { useMutation } from '@tanstack/react-query';
 
 export type SocialProvider = 'GOOGLE' | 'APPLE' | 'KAKAO';
 
-export type MemberLevel = 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED';
-export type MemberCategory = 'DAILY' | 'BUSINESS';
-
 export interface SocialSignUpRequest {
   provider: SocialProvider;
   idToken: string;
   koreanName: string;
   englishName: string;
-  level: MemberLevel;
-  categories: MemberCategory[];
+  level: Level;
+  categories: Category[];
 }
 
 type UnknownItem = unknown;

@@ -1,5 +1,7 @@
+import { ChatMessage } from '@/hooks/use-livekit';
+import { useEffect, useRef } from 'react';
 import {
-  ScrollView,
+  FlatList,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -7,7 +9,7 @@ import {
 } from 'react-native';
 
 interface CallViewProps {
-  participants: string[];
+  messages: ChatMessage[];
   isMicEnabled: boolean;
   isSpeakerOn: boolean;
   onToggleMic: () => void;
@@ -15,39 +17,73 @@ interface CallViewProps {
 }
 
 export function CallView({
-  participants,
+  messages,
   isMicEnabled,
   isSpeakerOn,
   onToggleMic,
   onToggleSpeaker,
 }: CallViewProps) {
+  const messagesRef = useRef<FlatList<ChatMessage>>(null);
+
+  useEffect(() => {
+    const raf1 = requestAnimationFrame(() => {
+      const raf2 = requestAnimationFrame(() => {
+        messagesRef.current?.scrollToEnd({ animated: true });
+      });
+      return () => cancelAnimationFrame(raf2);
+    });
+    return () => cancelAnimationFrame(raf1);
+  }, [messages]);
+
+  const renderMessage = ({ item }: { item: ChatMessage }) => {
+    const isAgent = item.sender.toLowerCase().includes('agent');
+    const displaySender =
+      item.sender === 'System' ? '' : item.isLocal ? '나' : isAgent ? '에이전트' : item.sender;
+
+    return (
+      <View
+        style={[
+          styles.messageItem,
+          item.isLocal ? styles.localMessage : styles.remoteMessage,
+          item.sender === 'System' && styles.systemMessage,
+        ]}
+      >
+        {displaySender ? (
+          <Text style={styles.messageSender}>{displaySender}</Text>
+        ) : null}
+        <Text
+          style={[
+            styles.messageText,
+            item.sender === 'System' && styles.systemMessageText,
+          ]}
+        >
+          {item.text}
+        </Text>
+      </View>
+    );
+  };
+
   return (
     <View style={styles.container}>
-      {/* 참가자 목록 */}
-      <View style={styles.participantsSection}>
-        <Text style={styles.sectionTitle}>
-          참가자 ({participants.length + 1})
-        </Text>
-        <ScrollView style={styles.participantsList}>
-          {/* 나 */}
-          <View style={styles.participantItem}>
-            <View style={styles.participantAvatar}>
-              <Text style={styles.participantAvatarText}>👤</Text>
+      {/* 대화(전사) */}
+      <View style={styles.transcriptSection}>
+        <Text style={styles.sectionTitle}>대화</Text>
+        <FlatList
+          ref={messagesRef}
+          data={messages}
+          keyExtractor={(item) => item.id}
+          renderItem={renderMessage}
+          style={styles.messagesList}
+          contentContainerStyle={styles.messagesContent}
+          ListEmptyComponent={
+            <View style={styles.emptyChat}>
+              <Text style={styles.emptyChatText}>대화 내역이 없습니다</Text>
             </View>
-            <Text style={styles.participantName}>Me (나)</Text>
-            {!isMicEnabled && <Text style={styles.mutedBadge}>🔇</Text>}
-          </View>
-
-          {/* 다른 참가자들 */}
-          {participants.map((p) => (
-            <View key={p} style={styles.participantItem}>
-              <View style={styles.participantAvatar}>
-                <Text style={styles.participantAvatarText}>🤖</Text>
-              </View>
-              <Text style={styles.participantName}>{p}</Text>
-            </View>
-          ))}
-        </ScrollView>
+          }
+          onContentSizeChange={() =>
+            messagesRef.current?.scrollToEnd({ animated: true })
+          }
+        />
       </View>
 
       {/* 컨트롤 버튼들 */}
@@ -87,45 +123,64 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 20,
   },
-  participantsSection: {
-    flex: 1,
-  },
   sectionTitle: {
     color: '#fff',
     fontSize: 16,
     fontWeight: '600',
     marginBottom: 16,
   },
-  participantsList: {
+  transcriptSection: {
     flex: 1,
   },
-  participantItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#2a2a4e',
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 10,
+  messagesList: {
+    flex: 1,
   },
-  participantAvatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: '#3a3a5e',
+  messagesContent: {
+    paddingBottom: 8,
+  },
+  messageItem: {
+    maxWidth: '85%',
+    padding: 12,
+    borderRadius: 16,
+    marginBottom: 8,
+  },
+  localMessage: {
+    alignSelf: 'flex-end',
+    backgroundColor: '#6366f1',
+  },
+  remoteMessage: {
+    alignSelf: 'flex-start',
+    backgroundColor: '#2a2a4e',
+  },
+  systemMessage: {
+    alignSelf: 'center',
+    backgroundColor: 'transparent',
+  },
+  messageSender: {
+    color: '#a0a0c0',
+    fontSize: 12,
+    marginBottom: 4,
+  },
+  messageText: {
+    color: '#fff',
+    fontSize: 15,
+    lineHeight: 20,
+  },
+  systemMessageText: {
+    color: '#666',
+    fontSize: 13,
+    fontStyle: 'italic',
+    textAlign: 'center',
+  },
+  emptyChat: {
+    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 12,
+    paddingVertical: 20,
   },
-  participantAvatarText: {
-    fontSize: 20,
-  },
-  participantName: {
-    color: '#fff',
-    fontSize: 16,
-    flex: 1,
-  },
-  mutedBadge: {
-    fontSize: 16,
+  emptyChatText: {
+    color: '#666',
+    fontSize: 14,
   },
   controls: {
     flexDirection: 'row',

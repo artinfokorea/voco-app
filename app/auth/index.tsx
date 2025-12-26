@@ -46,6 +46,7 @@ export default function AuthScreen() {
   const onGoogleLogin = async () => {
     try {
       const user = await loginWithGoogle();
+
       if (!user?.accessToken) {
         Alert.alert('구글 로그인 실패', 'accessToken을 가져오지 못했어요.');
         return;
@@ -59,11 +60,21 @@ export default function AuthScreen() {
             router.replace('/');
           },
           onError: (error: any) => {
-            Alert.alert(
-              '로그인 실패',
-              error?.message ||
-                '계정이 없으신 경우 회원가입 버튼을 눌러 진행해주세요.'
-            );
+            if (error?.status === 404) {
+              Alert.alert(
+                '계정을 찾을 수 없습니다',
+                '등록된 계정이 없습니다. 회원가입을 진행해주세요.',
+                [
+                  { text: '취소', style: 'cancel' },
+                  { text: '회원가입', onPress: () => setMode('signup') },
+                ]
+              );
+            } else {
+              Alert.alert(
+                '로그인 실패',
+                error?.message || '다시 시도해주세요.'
+              );
+            }
           },
         }
       );

@@ -24,6 +24,13 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="calls"
+        options={{
+          title: '통화내역',
+          tabBarIcon: ({ color }) => <IconSymbol size={28} name="phone.fill" color={color} />,
+        }}
+      />
+      <Tabs.Screen
         name="explore"
         options={{
           title: 'Explore',

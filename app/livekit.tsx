@@ -1,9 +1,7 @@
 import {
   CallView,
-  ChatView,
   ConnectionForm,
   RoomHeader,
-  TabBar,
 } from '@/components/livekit';
 import { useLiveKit } from '@/hooks/use-livekit';
 import { useRouter } from 'expo-router';
@@ -14,25 +12,19 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 export default function LiveKitScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const [activeTab, setActiveTab] = useState<'call' | 'chat'>('call');
   const [isSpeakerOn, setIsSpeakerOn] = useState(true);
 
   const {
     room,
     isConnected,
     isConnecting,
-    serverUrl,
-    setServerUrl,
-    token,
-    setToken,
-    hasTokenEndpoint,
+    agentIdentity,
+    isAgentConnected,
     isMicEnabled,
-    participants,
     messages,
     connect,
     disconnect,
     toggleMic,
-    sendMessage,
   } = useLiveKit();
 
   // 연결 전 UI
@@ -40,11 +32,6 @@ export default function LiveKitScreen() {
     return (
       <View style={[styles.container, { paddingTop: insets.top }]}>
         <ConnectionForm
-          serverUrl={serverUrl}
-          onServerUrlChange={setServerUrl}
-          token={token}
-          onTokenChange={setToken}
-          hasTokenEndpoint={hasTokenEndpoint}
           isConnecting={isConnecting}
           onConnect={connect}
           onBack={() => router.back()}
@@ -56,30 +43,26 @@ export default function LiveKitScreen() {
   // 연결 후 UI
   return (
     <KeyboardAvoidingView
-      style={[styles.container, { paddingTop: insets.top }]}
+      style={[
+        styles.container,
+        { paddingTop: insets.top, paddingBottom: insets.bottom },
+      ]}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <RoomHeader roomName={room?.name || ''} onEndCall={disconnect} />
+      <RoomHeader
+        roomName={room?.name || ''}
+        isAgentConnected={isAgentConnected}
+        agentIdentity={agentIdentity}
+        onEndCall={disconnect}
+      />
 
-      <TabBar activeTab={activeTab} onTabChange={setActiveTab} />
-
-      {activeTab === 'call' && (
-        <CallView
-          participants={participants}
-          isMicEnabled={isMicEnabled}
-          isSpeakerOn={isSpeakerOn}
-          onToggleMic={toggleMic}
-          onToggleSpeaker={() => setIsSpeakerOn((prev) => !prev)}
-        />
-      )}
-
-      {activeTab === 'chat' && (
-        <ChatView
-          messages={messages}
-          onSendMessage={sendMessage}
-          bottomInset={insets.bottom}
-        />
-      )}
+      <CallView
+        messages={messages}
+        isMicEnabled={isMicEnabled}
+        isSpeakerOn={isSpeakerOn}
+        onToggleMic={toggleMic}
+        onToggleSpeaker={() => setIsSpeakerOn((prev) => !prev)}
+      />
     </KeyboardAvoidingView>
   );
 }

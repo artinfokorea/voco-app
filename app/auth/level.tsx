@@ -1,5 +1,6 @@
 import { SelectionCard } from '@/components/common/SelectionCard';
 import { Colors } from '@/constants/colors';
+import { Level } from '@/constants/enums';
 import { useSocialSignUp } from '@/hooks/use-social-signup';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -13,23 +14,21 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-type Level = 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED';
-
 const LEVELS = [
   {
-    id: 'BEGINNER' as const,
+    id: Level.BEGINNER,
     title: 'Beginner',
     description: 'I can understand simple words and phrases.',
     icon: 'smile' as const,
   },
   {
-    id: 'INTERMEDIATE' as const,
+    id: Level.INTERMEDIATE,
     title: 'Intermediate',
     description: 'I can have simple conversations on familiar topics.',
     icon: 'trophy' as const,
   },
   {
-    id: 'ADVANCED' as const,
+    id: Level.ADVANCED,
     title: 'Advanced',
     description: 'I can express myself fluently and spontaneously.',
     icon: 'rocket' as const,
@@ -41,7 +40,7 @@ export default function LevelScreen() {
   const insets = useSafeAreaInsets();
   const { draft, setLevel } = useSocialSignUp();
   const [selectedLevel, setSelectedLevel] = useState<Level | null>(
-    draft?.level ?? null
+    (draft?.level as Level) ?? null
   );
 
   useEffect(() => {
