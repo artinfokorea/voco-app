@@ -1,8 +1,4 @@
-import {
-  CallView,
-  ConnectionForm,
-  RoomHeader,
-} from '@/components/livekit';
+import { CallView, ConnectionForm, RoomHeader } from '@/components/livekit';
 import { useLiveKit } from '@/hooks/use-livekit';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';

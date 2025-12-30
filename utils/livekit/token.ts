@@ -13,15 +13,16 @@ export type LiveKitTokenResponse = {
   };
 };
 
-export async function fetchLiveKitToken(): Promise<{
+export async function fetchLiveKitToken(scenarioId: number): Promise<{
   token: string;
   roomName: string;
 }> {
-  console.log('[LiveKit] fetchLiveKitToken request');
+  console.log('[LiveKit] fetchLiveKitToken request', { scenarioId });
 
   try {
     const response = await apiClient.post<LiveKitTokenResponse>(
-      '/livekit/token'
+      '/livekit/token',
+      { scenarioId }
     );
     console.log('[LiveKit] fetchLiveKitToken response', response.status);
 

@@ -57,7 +57,7 @@ export interface UseLiveKitReturn {
   messages: ChatMessage[];
 
   // 액션
-  connect: () => Promise<void>;
+  connect: (scenarioId: number) => Promise<void>;
   disconnect: () => Promise<void>;
   toggleMic: () => Promise<void>;
 }
@@ -393,7 +393,7 @@ export function useLiveKit(): UseLiveKitReturn {
   );
 
   // 방 연결
-  const connect = useCallback(async () => {
+  const connect = useCallback(async (scenarioId: number) => {
     if (!serverUrl) {
       Alert.alert('오류', 'LiveKit 서버 URL을 입력해주세요.');
       return;
@@ -411,7 +411,7 @@ export function useLiveKit(): UseLiveKitReturn {
 
       // API에서 토큰과 룸 이름 가져오기
       const { token: liveKitToken, roomName: serverRoomName } =
-        await fetchLiveKitToken();
+        await fetchLiveKitToken(scenarioId);
       setToken(liveKitToken);
       setRoomName(serverRoomName);
 
