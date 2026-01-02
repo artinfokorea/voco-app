@@ -4,6 +4,15 @@ import { tokenStorage } from './token';
 // TODO: Replace with your actual backend URL
 const BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000/api';
 
+// Public API client (로그인, 회원가입 등 인증 불필요한 API)
+export const publicClient = axios.create({
+  baseURL: BASE_URL,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+// Authenticated API client (인증 필요한 API)
 export const apiClient = axios.create({
   baseURL: BASE_URL,
   headers: {

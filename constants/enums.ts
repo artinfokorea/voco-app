@@ -6,7 +6,7 @@ export const Category = {
   SHOPPING: 'SHOPPING',
 } as const;
 
-export type Category = (typeof Category)[keyof typeof Category];
+export type CategoryType = (typeof Category)[keyof typeof Category];
 
 // Level Enum
 export const Level = {
@@ -15,7 +15,7 @@ export const Level = {
   ADVANCED: 'ADVANCED',
 } as const;
 
-export type Level = (typeof Level)[keyof typeof Level];
+export type LevelType = (typeof Level)[keyof typeof Level];
 
 // DayOfWeek Enum
 export const DayOfWeek = {
@@ -28,4 +28,32 @@ export const DayOfWeek = {
   SUNDAY: 'SUNDAY',
 } as const;
 
-export type DayOfWeek = (typeof DayOfWeek)[keyof typeof DayOfWeek];
+export type DayOfWeekType = (typeof DayOfWeek)[keyof typeof DayOfWeek];
+
+export const DayOfWeekLabels: Record<DayOfWeekType, string> = {
+  MONDAY: '월요일',
+  TUESDAY: '화요일',
+  WEDNESDAY: '수요일',
+  THURSDAY: '목요일',
+  FRIDAY: '금요일',
+  SATURDAY: '토요일',
+  SUNDAY: '일요일',
+};
+
+export const Grade = {
+  EXCELLENT: 'EXCELLENT',
+  GOOD: 'GOOD',
+  FAIR: 'FAIR',
+  POOR: 'POOR',
+  BAD: 'BAD',
+} as const;
+
+export type GradeType = (typeof Grade)[keyof typeof Grade];
+
+export const GradeColors: Record<GradeType, string> = {
+  EXCELLENT: '#55efc4',
+  GOOD: '#81ecec',
+  FAIR: '#ffeaa7',
+  POOR: '#fab1a0',
+  BAD: '#ff7675',
+};

@@ -1,6 +1,15 @@
-import { apiClient } from '@/utils/api-client';
+import {
+  ApiResponse,
+  ServerError,
+  createServerError,
+} from '@/types/api';
+import { apiClient, publicClient } from '@/utils/api-client';
 import { tokenStorage } from '@/utils/token';
 import { useMutation, useQuery } from '@tanstack/react-query';
+
+// Re-export for backward compatibility
+export { ApiResponse, ServerError, createServerError };
+export type ServerResponse<T> = ApiResponse<T>;
 
 // --- Types ---
 export interface LoginRequest {
@@ -13,41 +22,15 @@ export interface AuthTokens {
   refreshToken: string;
 }
 
-export interface ServerResponse<T> {
-  type: 'SUCCESS' | 'FAIL';
-  exception: {
-    errorNo: string;
-    message: string;
-    validation: Record<string, string>;
-  } | null;
-  item: T;
-}
-
-export type ServerError = Error & {
-  errorNo?: string;
-  validation?: Record<string, string>;
-};
-
-export const createServerError = (
-  data: ServerResponse<unknown>
-): ServerError => {
-  const error = new Error(
-    data.exception?.message || 'Request failed'
-  ) as ServerError;
-  error.errorNo = data.exception?.errorNo;
-  error.validation = data.exception?.validation ?? undefined;
-  return error;
-};
-
 // --- API Functions ---
 const authApi = {
   login: async (data: LoginRequest): Promise<ServerResponse<AuthTokens>> => {
-    // POST to /auth/sign-in/social
-    const response = await apiClient.post('auth/sign-in/social', data);
+    // POST to /auth/sign-in/social (publicClient: 인증 불필요)
+
+    const response = await publicClient.post('auth/sign-in/social', data);
 
     const serverData = response.data;
 
-    console.log('serverData', serverData);
     if (serverData.type === 'FAIL' || !serverData.item) {
       throw createServerError(serverData as ServerResponse<unknown>);
     }

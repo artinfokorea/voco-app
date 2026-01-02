@@ -1,38 +1,15 @@
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 interface RoomHeaderProps {
-  roomName: string;
-  isAgentConnected: boolean;
-  agentIdentity: string | null;
+  scenarioName: string | null;
   onEndCall: () => void;
 }
 
-export function RoomHeader({
-  roomName,
-  isAgentConnected,
-  agentIdentity,
-  onEndCall,
-}: RoomHeaderProps) {
+export function RoomHeader({ scenarioName, onEndCall }: RoomHeaderProps) {
   return (
     <View style={styles.header}>
       <View style={styles.headerLeft}>
-        <View style={styles.roomRow}>
-          <View style={styles.statusDot} />
-          <Text style={styles.headerTitle}>{roomName || '통화 중'}</Text>
-        </View>
-        <View style={styles.agentRow}>
-          <View
-            style={[
-              styles.agentDot,
-              isAgentConnected ? styles.agentDotOn : styles.agentDotOff,
-            ]}
-          />
-          <Text style={styles.agentText}>
-            {isAgentConnected
-              ? `에이전트 연결됨${agentIdentity ? ` (${agentIdentity})` : ''}`
-              : '에이전트 대기중'}
-          </Text>
-        </View>
+        <Text style={styles.headerTitle}>{scenarioName || '통화 중'}</Text>
       </View>
       <TouchableOpacity style={styles.endCallButton} onPress={onEndCall}>
         <Text style={styles.endCallText}>종료</Text>
@@ -86,43 +63,10 @@ const styles = StyleSheet.create({
     flex: 1,
     marginRight: 12,
   },
-  roomRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  statusDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    marginRight: 8,
-    backgroundColor: '#4ade80',
-  },
   headerTitle: {
     color: '#fff',
     fontSize: 18,
     fontWeight: '600',
-  },
-  agentRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 6,
-  },
-  agentDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    marginRight: 8,
-  },
-  agentDotOn: {
-    backgroundColor: '#4ade80',
-  },
-  agentDotOff: {
-    backgroundColor: '#fbbf24',
-  },
-  agentText: {
-    color: '#a0a0c0',
-    fontSize: 13,
-    flexShrink: 1,
   },
   endCallButton: {
     backgroundColor: '#ef4444',

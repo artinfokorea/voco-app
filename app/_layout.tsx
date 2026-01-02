@@ -8,6 +8,7 @@ import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
 
+import { ModalProvider } from '@/contexts/ModalContext';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
 export const unstable_settings = {
@@ -22,18 +23,20 @@ export default function RootLayout() {
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-        <Stack>
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          <Stack.Screen
-            name="modal"
-            options={{ presentation: 'modal', title: 'Modal' }}
-          />
-          <Stack.Screen
-            name="livekit"
-            options={{ headerShown: false, title: 'LiveKit' }}
-          />
-        </Stack>
-        <StatusBar style="auto" />
+        <ModalProvider>
+          <Stack>
+            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            <Stack.Screen
+              name="modal"
+              options={{ presentation: 'modal', title: 'Modal' }}
+            />
+            <Stack.Screen
+              name="livekit"
+              options={{ headerShown: false, title: 'LiveKit' }}
+            />
+          </Stack>
+          <StatusBar style="auto" />
+        </ModalProvider>
       </ThemeProvider>
     </QueryClientProvider>
   );

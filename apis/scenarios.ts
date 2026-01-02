@@ -1,34 +1,20 @@
-import { ServerResponse, createServerError } from '@/apis/auth';
-import { Level } from '@/constants/enums';
+import { LevelType } from '@/constants/enums';
+import { ApiResponse, SimplePagedResponse, createServerError } from '@/types/api';
 import { apiClient } from '@/utils/api-client';
 import { useQuery } from '@tanstack/react-query';
 
 // --- Types ---
 export interface Scenario {
-  id: number;
-  title: string;
-  description: string;
-  level: Level;
+  scenarioId: number;
+  name: string;
+  level: LevelType;
 }
 
-export interface PaginatedResponse<T> {
-  type: 'SUCCESS' | 'FAIL';
-  exception: {
-    errorNo: string;
-    message: string;
-    validation: Record<string, string>;
-  } | null;
-  item: {
-    content: T[];
-    page: number;
-    size: number;
-    totalElements: number;
-    totalPages: number;
-  };
-}
+// Re-export for backward compatibility
+export type PaginatedResponse<T> = SimplePagedResponse<T>;
 
 export interface GetScenariosParams {
-  level: Level;
+  level: LevelType;
   page?: number;
   size?: number;
 }
@@ -50,7 +36,7 @@ const scenariosApi = {
 
       const serverData = response.data;
       if (serverData.type === 'FAIL') {
-        throw createServerError(serverData as ServerResponse<unknown>);
+        throw createServerError(serverData as ApiResponse<unknown>);
       }
       return serverData;
     } catch (error) {

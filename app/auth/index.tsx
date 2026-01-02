@@ -1,6 +1,7 @@
 import { useLoginMutation } from '@/apis/auth';
 import { SocialButton } from '@/components/auth/SocialButton';
 import { Colors } from '@/constants/colors';
+import { useModal } from '@/contexts/ModalContext';
 import { useSocialSignUp } from '@/hooks/use-social-signup';
 import { loginWithGoogle } from '@/utils/auth/google';
 import { tokenStorage } from '@/utils/token';
@@ -9,7 +10,6 @@ import { StatusBar } from 'expo-status-bar';
 import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   ScrollView,
   StyleSheet,
   Text,
@@ -21,6 +21,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 export default function AuthScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { alert, confirm } = useModal();
   const [mode, setMode] = useState<'login' | 'signup'>('login');
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const { mutate: login, isPending } = useLoginMutation();
@@ -48,7 +49,7 @@ export default function AuthScreen() {
       const user = await loginWithGoogle();
 
       if (!user?.accessToken) {
-        Alert.alert('구글 로그인 실패', 'accessToken을 가져오지 못했어요.');
+        alert({ title: '구글 로그인 실패', message: 'accessToken을 가져오지 못했어요.', type: 'error' });
         return;
       }
 
@@ -59,28 +60,29 @@ export default function AuthScreen() {
             reset();
             router.replace('/');
           },
-          onError: (error: any) => {
+          onError: async (error: any) => {
             if (error?.status === 404) {
-              Alert.alert(
-                '계정을 찾을 수 없습니다',
-                '등록된 계정이 없습니다. 회원가입을 진행해주세요.',
-                [
-                  { text: '취소', style: 'cancel' },
-                  { text: '회원가입', onPress: () => setMode('signup') },
-                ]
-              );
+              const goToSignUp = await confirm({
+                title: '계정을 찾을 수 없습니다',
+                message: '등록된 계정이 없습니다. 회원가입을 진행해주세요.',
+                confirmText: '회원가입',
+              });
+              if (goToSignUp) {
+                setMode('signup');
+              }
             } else {
-              Alert.alert(
-                '로그인 실패',
-                error?.message || '다시 시도해주세요.'
-              );
+              alert({
+                title: '로그인 실패',
+                message: error?.message || '다시 시도해주세요.',
+                type: 'error',
+              });
             }
           },
         }
       );
     } catch (e) {
       console.error(e);
-      Alert.alert('구글 로그인 실패', '다시 시도해주세요.');
+      alert({ title: '구글 로그인 실패', message: '다시 시도해주세요.', type: 'error' });
     }
   };
 
@@ -88,7 +90,7 @@ export default function AuthScreen() {
     try {
       const user = await loginWithGoogle();
       if (!user?.accessToken) {
-        Alert.alert('구글 회원가입 실패', 'accessToken을 가져오지 못했어요.');
+        alert({ title: '구글 회원가입 실패', message: 'accessToken을 가져오지 못했어요.', type: 'error' });
         return;
       }
 
@@ -97,7 +99,7 @@ export default function AuthScreen() {
       router.push('/auth/social-signup');
     } catch (e) {
       console.error(e);
-      Alert.alert('구글 회원가입 실패', '다시 시도해주세요.');
+      alert({ title: '구글 회원가입 실패', message: '다시 시도해주세요.', type: 'error' });
     }
   };
 

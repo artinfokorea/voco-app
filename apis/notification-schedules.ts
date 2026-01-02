@@ -1,29 +1,29 @@
-import { ServerResponse, createServerError } from '@/apis/auth';
-import { DayOfWeek } from '@/constants/enums';
+import { DayOfWeekType } from '@/constants/enums';
+import { ApiResponse, createServerError } from '@/types/api';
 import { apiClient } from '@/utils/api-client';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 // --- Types ---
 export interface CreateNotificationScheduleRequest {
-  dayOfWeek: DayOfWeek;
+  dayOfWeek: DayOfWeekType;
   notificationTime: string; // Format: "HH:mm" (e.g., "09:00")
 }
 
 export interface UpdateNotificationScheduleRequest {
-  dayOfWeek: DayOfWeek;
+  dayOfWeek: DayOfWeekType;
   notificationTime: string;
 }
 
 export interface NotificationSchedule {
   id: number;
-  dayOfWeek: DayOfWeek;
+  dayOfWeek: DayOfWeekType;
   notificationTime: string;
 }
 
 // --- API Functions ---
 const notificationSchedulesApi = {
-  getAll: async (): Promise<ServerResponse<NotificationSchedule[]>> => {
-    const response = await apiClient.get<ServerResponse<NotificationSchedule[]>>(
+  getAll: async (): Promise<ApiResponse<NotificationSchedule[]>> => {
+    const response = await apiClient.get<ApiResponse<NotificationSchedule[]>>(
       'notification-schedules'
     );
 
@@ -36,8 +36,8 @@ const notificationSchedulesApi = {
 
   create: async (
     data: CreateNotificationScheduleRequest
-  ): Promise<ServerResponse<NotificationSchedule>> => {
-    const response = await apiClient.post<ServerResponse<NotificationSchedule>>(
+  ): Promise<ApiResponse<NotificationSchedule>> => {
+    const response = await apiClient.post<ApiResponse<NotificationSchedule>>(
       'notification-schedules',
       data
     );
@@ -52,8 +52,8 @@ const notificationSchedulesApi = {
   update: async (
     id: number,
     data: UpdateNotificationScheduleRequest
-  ): Promise<ServerResponse<NotificationSchedule>> => {
-    const response = await apiClient.put<ServerResponse<NotificationSchedule>>(
+  ): Promise<ApiResponse<NotificationSchedule>> => {
+    const response = await apiClient.put<ApiResponse<NotificationSchedule>>(
       `notification-schedules/${id}`,
       data
     );
@@ -65,8 +65,8 @@ const notificationSchedulesApi = {
     return serverData;
   },
 
-  delete: async (id: number): Promise<ServerResponse<null>> => {
-    const response = await apiClient.delete<ServerResponse<null>>(
+  delete: async (id: number): Promise<ApiResponse<null>> => {
+    const response = await apiClient.delete<ApiResponse<null>>(
       `notification-schedules/${id}`
     );
 

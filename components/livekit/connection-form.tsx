@@ -1,6 +1,6 @@
-import { Scenario, useScenariosQuery } from '@/apis/scenarios';
-import { Level } from '@/constants/enums';
-import { useState } from 'react';
+import { Scenario } from '@/apis/scenarios';
+import { Level, LevelType } from '@/constants/enums';
+import { useScenarioSelection } from '@/hooks/scenario';
 import {
   ActivityIndicator,
   FlatList,
@@ -12,11 +12,11 @@ import {
 
 interface ConnectionFormProps {
   isConnecting: boolean;
-  onConnect: (scenarioId: number) => void;
+  onConnect: (scenarioId: number, scenarioName: string) => void;
   onBack: () => void;
 }
 
-const LEVEL_TABS: { key: Level; label: string }[] = [
+const LEVEL_TABS: { key: LevelType; label: string }[] = [
   { key: Level.BEGINNER, label: '초급' },
   { key: Level.INTERMEDIATE, label: '중급' },
   { key: Level.ADVANCED, label: '고급' },
@@ -27,38 +27,29 @@ export function ConnectionForm({
   onConnect,
   onBack,
 }: ConnectionFormProps) {
-  const [selectedLevel, setSelectedLevel] = useState<Level>(Level.BEGINNER);
-  const [selectedScenario, setSelectedScenario] = useState<Scenario | null>(
-    null
-  );
-
-  const { data, isLoading, isError } = useScenariosQuery({
-    level: selectedLevel,
-    page: 1,
-    size: 20,
-  });
-
-  console.log('scenarios', data);
-
-  const scenarios = data?.content ?? [];
-
-  const handleLevelChange = (level: Level) => {
-    setSelectedLevel(level);
-    setSelectedScenario(null);
-  };
+  const {
+    selectedLevel,
+    handleLevelChange,
+    scenarios,
+    selectedScenario,
+    handleScenarioSelect,
+    hasSelection,
+    isLoading,
+    isError,
+  } = useScenarioSelection();
 
   const handleStart = () => {
     if (selectedScenario) {
-      onConnect(selectedScenario.id);
+      onConnect(selectedScenario.scenarioId, selectedScenario.name);
     }
   };
 
   const renderScenarioCard = ({ item }: { item: Scenario }) => {
-    const isSelected = selectedScenario?.id === item.id;
+    const isSelected = selectedScenario?.scenarioId === item.scenarioId;
     return (
       <TouchableOpacity
         style={[styles.scenarioCard, isSelected && styles.scenarioCardSelected]}
-        onPress={() => setSelectedScenario(item)}
+        onPress={() => handleScenarioSelect(item)}
         activeOpacity={0.7}
       >
         <Text
@@ -67,19 +58,8 @@ export function ConnectionForm({
             isSelected && styles.scenarioTitleSelected,
           ]}
         >
-          {item.title}
+          {item.name}
         </Text>
-        {item.description && (
-          <Text
-            style={[
-              styles.scenarioDescription,
-              isSelected && styles.scenarioDescriptionSelected,
-            ]}
-            numberOfLines={2}
-          >
-            {item.description}
-          </Text>
-        )}
       </TouchableOpacity>
     );
   };
@@ -93,7 +73,6 @@ export function ConnectionForm({
       <Text style={styles.title}>시나리오 선택</Text>
       <Text style={styles.subtitle}>대화할 시나리오를 선택해주세요</Text>
 
-      {/* Level Tabs */}
       <View style={styles.levelTabs}>
         {LEVEL_TABS.map((tab) => (
           <TouchableOpacity
@@ -116,7 +95,6 @@ export function ConnectionForm({
         ))}
       </View>
 
-      {/* Scenario List */}
       <View style={styles.scenarioListContainer}>
         {isLoading ? (
           <View style={styles.loadingContainer}>
@@ -134,7 +112,7 @@ export function ConnectionForm({
         ) : (
           <FlatList
             data={scenarios}
-            keyExtractor={(item) => item.id.toString()}
+            keyExtractor={(item) => item.scenarioId.toString()}
             renderItem={renderScenarioCard}
             contentContainerStyle={styles.scenarioList}
             showsVerticalScrollIndicator={false}
@@ -142,14 +120,13 @@ export function ConnectionForm({
         )}
       </View>
 
-      {/* Start Button */}
       <TouchableOpacity
         style={[
           styles.connectButton,
-          (!selectedScenario || isConnecting) && styles.buttonDisabled,
+          (!hasSelection || isConnecting) && styles.buttonDisabled,
         ]}
         onPress={handleStart}
-        disabled={!selectedScenario || isConnecting}
+        disabled={!hasSelection || isConnecting}
       >
         <Text style={styles.connectButtonText}>
           {isConnecting ? '연결 중...' : '대화 시작하기'}
@@ -231,18 +208,9 @@ const styles = StyleSheet.create({
     fontSize: 17,
     fontWeight: '600',
     color: '#fff',
-    marginBottom: 6,
   },
   scenarioTitleSelected: {
     color: '#a5b4fc',
-  },
-  scenarioDescription: {
-    fontSize: 14,
-    color: '#8888a8',
-    lineHeight: 20,
-  },
-  scenarioDescriptionSelected: {
-    color: '#a0a0c0',
   },
   loadingContainer: {
     flex: 1,

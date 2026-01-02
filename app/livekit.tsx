@@ -11,13 +11,11 @@ export default function LiveKitScreen() {
   const [isSpeakerOn, setIsSpeakerOn] = useState(true);
 
   const {
-    room,
     isConnected,
     isConnecting,
-    agentIdentity,
-    isAgentConnected,
     isMicEnabled,
     messages,
+    scenarioName,
     connect,
     disconnect,
     toggleMic,
@@ -45,12 +43,7 @@ export default function LiveKitScreen() {
       ]}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <RoomHeader
-        roomName={room?.name || ''}
-        isAgentConnected={isAgentConnected}
-        agentIdentity={agentIdentity}
-        onEndCall={disconnect}
-      />
+      <RoomHeader scenarioName={scenarioName} onEndCall={disconnect} />
 
       <CallView
         messages={messages}

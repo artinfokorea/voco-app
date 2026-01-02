@@ -1,5 +1,5 @@
 import type { SocialProvider } from '@/apis/members';
-import { Category, Level } from '@/constants/enums';
+import { CategoryType, LevelType } from '@/constants/enums';
 import React, { createContext, useContext, useMemo, useState } from 'react';
 
 type SignupDraft = {
@@ -7,20 +7,22 @@ type SignupDraft = {
   idToken: string;
   koreanName: string;
   englishName: string;
-  level: Level | null;
-  categories: Category[];
+  level: LevelType | null;
+  categories: CategoryType[];
 };
 
 type SocialSignUpContextValue = {
   draft: SignupDraft | null;
   start: (seed: { provider: SocialProvider; idToken: string }) => void;
   setNames: (names: { koreanName: string; englishName: string }) => void;
-  setLevel: (level: Level) => void;
-  toggleCategory: (category: Category) => void;
+  setLevel: (level: LevelType) => void;
+  toggleCategory: (category: CategoryType) => void;
   reset: () => void;
 };
 
-const SocialSignUpContext = createContext<SocialSignUpContextValue | null>(null);
+const SocialSignUpContext = createContext<SocialSignUpContextValue | null>(
+  null
+);
 
 export function SocialSignUpProvider({
   children,
@@ -30,7 +32,10 @@ export function SocialSignUpProvider({
   const [draft, setDraft] = useState<SignupDraft | null>(null);
 
   const value = useMemo<SocialSignUpContextValue>(() => {
-    const start: SocialSignUpContextValue['start'] = ({ provider, idToken }) => {
+    const start: SocialSignUpContextValue['start'] = ({
+      provider,
+      idToken,
+    }) => {
       setDraft({
         provider,
         idToken,
@@ -47,7 +52,11 @@ export function SocialSignUpProvider({
     }) => {
       setDraft((current) =>
         current
-          ? { ...current, koreanName: koreanName.trim(), englishName: englishName.trim() }
+          ? {
+              ...current,
+              koreanName: koreanName.trim(),
+              englishName: englishName.trim(),
+            }
           : current
       );
     };
@@ -88,4 +97,3 @@ export function useSocialSignUp() {
   }
   return ctx;
 }
-

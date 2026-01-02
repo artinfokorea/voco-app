@@ -53,9 +53,10 @@ export default function SocialSignUpScreen() {
         <ScrollView
           contentContainerStyle={[
             styles.content,
-            { paddingTop: insets.top + 40, paddingBottom: insets.bottom + 20 },
+            { paddingTop: insets.top + 16 },
           ]}
           showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
         >
           <View style={styles.header}>
             <Text style={styles.stepIndicator}>Step 1 of 3</Text>
@@ -83,7 +84,9 @@ export default function SocialSignUpScreen() {
               returnKeyType="done"
             />
           </View>
+        </ScrollView>
 
+        <View style={[styles.buttonContainer, { paddingBottom: insets.bottom + 20 }]}>
           <TouchableOpacity
             style={[styles.button, !isValid && styles.buttonDisabled]}
             onPress={handleContinue}
@@ -92,7 +95,7 @@ export default function SocialSignUpScreen() {
           >
             <Text style={styles.buttonText}>Continue</Text>
           </TouchableOpacity>
-        </ScrollView>
+        </View>
       </KeyboardAvoidingView>
     </View>
   );
@@ -131,13 +134,15 @@ const styles = StyleSheet.create({
   form: {
     marginBottom: 24,
   },
+  buttonContainer: {
+    paddingHorizontal: 24,
+  },
   button: {
     backgroundColor: Colors.primary,
     height: 56,
     borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 'auto',
   },
   buttonDisabled: {
     backgroundColor: Colors.surfaceLight,

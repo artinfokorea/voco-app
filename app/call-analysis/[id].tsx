@@ -1,8 +1,9 @@
-import { getCallAnalysis } from '@/utils/api/calls';
+import { Conversation, getCallDetail } from '@/apis/calls';
+import { getScoreColor, getScoreLabel } from '@/utils/score';
 import { useQuery } from '@tanstack/react-query';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import React from 'react';
+import React, { useState } from 'react';
 import {
   ActivityIndicator,
   ScrollView,
@@ -12,20 +13,6 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-
-const getScoreColor = (score: number) => {
-  if (score >= 80) return '#55efc4';
-  if (score >= 60) return '#ffeaa7';
-  return '#ff7675';
-};
-
-const getScoreLabel = (score: number) => {
-  if (score >= 90) return '훌륭해요!';
-  if (score >= 80) return '잘했어요!';
-  if (score >= 70) return '좋아요!';
-  if (score >= 60) return '괜찮아요';
-  return '더 연습해봐요';
-};
 
 interface ScoreCircleProps {
   score: number;
@@ -88,22 +75,91 @@ const ScoreBar = ({ label, score, icon }: ScoreBarProps) => {
   );
 };
 
+interface ConversationItemProps {
+  item: Conversation;
+  index: number;
+}
+
+const ConversationItem = ({ item, index }: ConversationItemProps) => {
+  const isUser = item.role === 'user';
+  const hasError = !!item.error;
+
+  return (
+    <View
+      style={[
+        styles.conversationItem,
+        isUser ? styles.conversationUser : styles.conversationAgent,
+      ]}
+    >
+      <View style={styles.conversationHeader}>
+        <Text style={styles.conversationRole}>{isUser ? '나' : 'AI'}</Text>
+        {hasError && <Text style={styles.errorBadge}>오류</Text>}
+      </View>
+      <Text style={styles.conversationContent}>{item.content}</Text>
+      {hasError && item.error && (
+        <View style={styles.errorBox}>
+          <Text style={styles.errorType}>
+            {item.error.errorType} - {item.error.errorSubtype}
+          </Text>
+          <Text style={styles.errorSegment}>
+            {`"${item.error.errorSegment}" → "${item.error.correction}"`}
+          </Text>
+          <Text style={styles.errorExplanation}>{item.error.explanation}</Text>
+        </View>
+      )}
+    </View>
+  );
+};
+
+interface FeedbackSectionProps {
+  title: string;
+  items: string[];
+  icon: string;
+  color: string;
+}
+
+const FeedbackSection = ({
+  title,
+  items,
+  icon,
+  color,
+}: FeedbackSectionProps) => {
+  if (!items || items.length === 0) return null;
+
+  return (
+    <View style={styles.feedbackSection}>
+      <View style={styles.feedbackHeader}>
+        <Text style={styles.feedbackIcon}>{icon}</Text>
+        <Text style={[styles.feedbackTitle, { color }]}>{title}</Text>
+      </View>
+      {items.map((item, index) => (
+        <View key={index} style={styles.feedbackItem}>
+          <Text style={styles.feedbackBullet}>•</Text>
+          <Text style={styles.feedbackText}>{item}</Text>
+        </View>
+      ))}
+    </View>
+  );
+};
+
 export default function CallAnalysisScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const [showConversation, setShowConversation] = useState(false);
 
   const { data, isLoading, isError, error, refetch } = useQuery({
-    queryKey: ['callAnalysis', id],
-    queryFn: () => getCallAnalysis(Number(id)),
+    queryKey: ['callDetail', id],
+    queryFn: () => getCallDetail(Number(id)),
     enabled: !!id,
   });
 
-  const analysis = data?.item;
+  const detail = data?.item;
 
   if (isLoading) {
     return (
       <View style={styles.loadingContainer}>
+        <Stack.Screen options={{ headerShown: false }} />
         <StatusBar style="light" />
         <ActivityIndicator size="large" color="#6366f1" />
         <Text style={styles.loadingText}>분석 결과를 불러오는 중...</Text>
@@ -111,16 +167,17 @@ export default function CallAnalysisScreen() {
     );
   }
 
-  if (isError || !analysis) {
+  if (isError || !detail) {
     return (
       <View style={styles.errorContainer}>
+        <Stack.Screen options={{ headerShown: false }} />
         <StatusBar style="light" />
         <Text style={styles.errorEmoji}>😢</Text>
         <Text style={styles.errorTitle}>오류가 발생했습니다</Text>
         <Text style={styles.errorDescription}>
           {error instanceof Error
             ? error.message
-            : '분석 결과를 불러올 수 없습니다'}
+            : '통화 상세 정보를 불러올 수 없습니다'}
         </Text>
         <TouchableOpacity style={styles.retryButton} onPress={() => refetch()}>
           <Text style={styles.retryButtonText}>다시 시도</Text>
@@ -131,9 +188,9 @@ export default function CallAnalysisScreen() {
 
   return (
     <View style={styles.container}>
+      <Stack.Screen options={{ headerShown: false }} />
       <StatusBar style="light" />
 
-      {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
         <TouchableOpacity
           style={styles.backButton}
@@ -141,7 +198,7 @@ export default function CallAnalysisScreen() {
         >
           <Text style={styles.backButtonText}>← 뒤로</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>통화 분석</Text>
+        <Text style={styles.headerTitle}>통화 상세</Text>
         <View style={styles.headerSpacer} />
       </View>
 
@@ -153,60 +210,101 @@ export default function CallAnalysisScreen() {
         ]}
         showsVerticalScrollIndicator={false}
       >
-        {/* Total Score Card */}
+        <View style={styles.scenarioInfo}>
+          <Text style={styles.scenarioName}>{detail.scenarioName}</Text>
+          <Text style={styles.scenarioLevel}>{detail.scenarioLevel}</Text>
+        </View>
+
         <View style={styles.totalScoreCard}>
           <Text style={styles.totalScoreTitle}>종합 점수</Text>
-          <ScoreCircle score={analysis.score} size={140} />
+          <ScoreCircle score={detail.overallScore} size={140} />
           <Text
             style={[
               styles.totalScoreLabel,
-              { color: getScoreColor(analysis.score) },
+              { color: getScoreColor(detail.overallScore) },
             ]}
           >
-            {getScoreLabel(analysis.score)}
+            {getScoreLabel(detail.overallScore)}
           </Text>
         </View>
 
-        {/* Detail Scores */}
         <View style={styles.detailScoresCard}>
           <Text style={styles.sectionTitle}>세부 점수</Text>
 
           <ScoreBar
-            label="발음"
-            score={analysis.content.pronunciation}
-            icon="🗣️"
+            label="과제 완성도"
+            score={detail.taskCompletionScore}
+            icon="✅"
           />
-
-          <ScoreBar label="문법" score={analysis.content.grammar} icon="📝" />
-        </View>
-
-        {/* Summary */}
-        <View style={styles.summaryCard}>
-          <Text style={styles.sectionTitle}>AI 피드백</Text>
-          <View style={styles.summaryContent}>
-            <Text style={styles.summaryIcon}>💬</Text>
-            <Text style={styles.summaryText}>{analysis.summary}</Text>
-          </View>
-        </View>
-
-        {/* Tips Section */}
-        <View style={styles.tipsCard}>
-          <Text style={styles.sectionTitle}>학습 팁</Text>
-          <View style={styles.tipItem}>
-            <Text style={styles.tipIcon}>💡</Text>
-            <Text style={styles.tipText}>
-              매일 10분씩 꾸준히 연습하면 실력이 빠르게 향상됩니다.
+          <View style={styles.summaryBox}>
+            <Text style={styles.summaryBoxText}>
+              {detail.taskCompletionSummary}
             </Text>
           </View>
-          <View style={styles.tipItem}>
-            <Text style={styles.tipIcon}>🎯</Text>
-            <Text style={styles.tipText}>
-              다양한 시나리오를 경험해보세요. 실전 대화에 도움이 됩니다.
+
+          <ScoreBar
+            label="언어 정확도"
+            score={detail.languageAccuracyScore}
+            icon="📝"
+          />
+          <View style={styles.summaryBox}>
+            <Text style={styles.summaryBoxText}>
+              {detail.languageAccuracySummary}
             </Text>
           </View>
         </View>
 
-        {/* Action Button */}
+        {detail.conversation && detail.conversation.length > 0 && (
+          <View style={styles.conversationCard}>
+            <TouchableOpacity
+              style={styles.conversationToggle}
+              onPress={() => setShowConversation(!showConversation)}
+            >
+              <Text style={styles.sectionTitle}>대화 내역</Text>
+              <Text style={styles.toggleIcon}>
+                {showConversation ? '▲' : '▼'}
+              </Text>
+            </TouchableOpacity>
+            {showConversation && (
+              <View style={styles.conversationList}>
+                {detail.conversation.map((item, index) => (
+                  <ConversationItem key={index} item={item} index={index} />
+                ))}
+              </View>
+            )}
+          </View>
+        )}
+
+        {detail.feedback && (
+          <View style={styles.feedbackCard}>
+            <Text style={styles.sectionTitle}>AI 피드백</Text>
+            <FeedbackSection
+              title="잘한 점"
+              items={detail.feedback.strengths}
+              icon="💪"
+              color="#55efc4"
+            />
+            <FeedbackSection
+              title="개선할 점"
+              items={detail.feedback.improvements}
+              icon="📈"
+              color="#fdcb6e"
+            />
+            <FeedbackSection
+              title="집중 영역"
+              items={detail.feedback.focusAreas}
+              icon="🎯"
+              color="#74b9ff"
+            />
+            <FeedbackSection
+              title="학습 팁"
+              items={detail.feedback.tips}
+              icon="💡"
+              color="#a29bfe"
+            />
+          </View>
+        )}
+
         <TouchableOpacity
           style={styles.practiceButton}
           onPress={() => router.push('/livekit')}
@@ -343,7 +441,40 @@ const styles = StyleSheet.create({
     height: '100%',
     borderRadius: 4,
   },
-  summaryCard: {
+  scenarioInfo: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  scenarioName: {
+    flex: 1,
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#fff',
+    marginRight: 12,
+  },
+  scenarioLevel: {
+    flexShrink: 0,
+    fontSize: 14,
+    color: '#a0a0c0',
+    backgroundColor: 'rgba(99, 102, 241, 0.2)',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  summaryBox: {
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 16,
+  },
+  summaryBoxText: {
+    fontSize: 14,
+    color: '#d0d0e0',
+    lineHeight: 20,
+  },
+  conversationCard: {
     backgroundColor: 'rgba(255,255,255,0.08)',
     borderRadius: 20,
     padding: 20,
@@ -351,40 +482,117 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255,255,255,0.1)',
     marginBottom: 16,
   },
-  summaryContent: {
+  conversationToggle: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  toggleIcon: {
+    fontSize: 14,
+    color: '#a0a0c0',
+  },
+  conversationList: {
+    marginTop: 16,
     gap: 12,
   },
-  summaryIcon: {
-    fontSize: 24,
+  conversationItem: {
+    borderRadius: 12,
+    padding: 12,
   },
-  summaryText: {
-    flex: 1,
-    fontSize: 15,
+  conversationUser: {
+    backgroundColor: 'rgba(99, 102, 241, 0.2)',
+    marginLeft: 24,
+  },
+  conversationAgent: {
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    marginRight: 24,
+  },
+  conversationHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 6,
+  },
+  conversationRole: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#a0a0c0',
+  },
+  errorBadge: {
+    fontSize: 10,
+    color: '#ff6b6b',
+    backgroundColor: 'rgba(255, 107, 107, 0.2)',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  conversationContent: {
+    fontSize: 14,
+    color: '#fff',
+    lineHeight: 20,
+  },
+  errorBox: {
+    backgroundColor: 'rgba(255, 107, 107, 0.1)',
+    borderRadius: 8,
+    padding: 10,
+    marginTop: 8,
+    borderLeftWidth: 3,
+    borderLeftColor: '#ff6b6b',
+  },
+  errorType: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#ff6b6b',
+    marginBottom: 4,
+  },
+  errorSegment: {
+    fontSize: 13,
+    color: '#fdcb6e',
+    marginBottom: 4,
+  },
+  errorExplanation: {
+    fontSize: 12,
     color: '#d0d0e0',
-    lineHeight: 24,
+    lineHeight: 18,
   },
-  tipsCard: {
-    backgroundColor: 'rgba(99, 102, 241, 0.15)',
+  feedbackCard: {
+    backgroundColor: 'rgba(255,255,255,0.08)',
     borderRadius: 20,
     padding: 20,
     borderWidth: 1,
-    borderColor: 'rgba(99, 102, 241, 0.3)',
+    borderColor: 'rgba(255,255,255,0.1)',
     marginBottom: 24,
   },
-  tipItem: {
+  feedbackSection: {
+    marginTop: 16,
+  },
+  feedbackHeader: {
     flexDirection: 'row',
-    gap: 12,
-    marginBottom: 12,
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 8,
   },
-  tipIcon: {
-    fontSize: 18,
+  feedbackIcon: {
+    fontSize: 16,
   },
-  tipText: {
+  feedbackTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  feedbackItem: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 6,
+    paddingLeft: 24,
+  },
+  feedbackBullet: {
+    color: '#a0a0c0',
+  },
+  feedbackText: {
     flex: 1,
     fontSize: 14,
     color: '#d0d0e0',
-    lineHeight: 22,
+    lineHeight: 20,
   },
   practiceButton: {
     backgroundColor: '#6366f1',

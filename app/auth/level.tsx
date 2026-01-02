@@ -1,6 +1,6 @@
 import { SelectionCard } from '@/components/common/SelectionCard';
 import { Colors } from '@/constants/colors';
-import { Level } from '@/constants/enums';
+import { Level, LevelType } from '@/constants/enums';
 import { useSocialSignUp } from '@/hooks/use-social-signup';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -39,8 +39,8 @@ export default function LevelScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { draft, setLevel } = useSocialSignUp();
-  const [selectedLevel, setSelectedLevel] = useState<Level | null>(
-    (draft?.level as Level) ?? null
+  const [selectedLevel, setSelectedLevel] = useState<LevelType | null>(
+    (draft?.level as LevelType) ?? null
   );
 
   useEffect(() => {
@@ -60,8 +60,9 @@ export default function LevelScreen() {
       <ScrollView
         contentContainerStyle={[
           styles.content,
-          { paddingTop: insets.top + 40, paddingBottom: insets.bottom + 20 },
+          { paddingTop: insets.top + 16 },
         ]}
+        showsVerticalScrollIndicator={false}
       >
         <View style={styles.header}>
           <Text style={styles.stepIndicator}>Step 2 of 3</Text>
@@ -84,7 +85,9 @@ export default function LevelScreen() {
             />
           ))}
         </View>
+      </ScrollView>
 
+      <View style={[styles.buttonContainer, { paddingBottom: insets.bottom + 20 }]}>
         <TouchableOpacity
           style={[styles.button, !selectedLevel && styles.buttonDisabled]}
           onPress={handleContinue}
@@ -93,7 +96,7 @@ export default function LevelScreen() {
         >
           <Text style={styles.buttonText}>Continue</Text>
         </TouchableOpacity>
-      </ScrollView>
+      </View>
     </View>
   );
 }
@@ -129,7 +132,10 @@ const styles = StyleSheet.create({
     lineHeight: 24,
   },
   list: {
-    marginBottom: 40,
+    marginBottom: 24,
+  },
+  buttonContainer: {
+    paddingHorizontal: 24,
   },
   button: {
     backgroundColor: Colors.primary,
@@ -137,7 +143,6 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 'auto',
   },
   buttonDisabled: {
     backgroundColor: Colors.surfaceLight,

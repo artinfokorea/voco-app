@@ -2,13 +2,13 @@ import { useSocialSignUpMutation } from '@/apis/members';
 import { SelectionCard } from '@/components/common/SelectionCard';
 import { Colors } from '@/constants/colors';
 import { Category } from '@/constants/enums';
+import { useModal } from '@/contexts/ModalContext';
 import { useSocialSignUp } from '@/hooks/use-social-signup';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   ScrollView,
   StyleSheet,
   Text,
@@ -27,6 +27,7 @@ const CATEGORIES = [
 export default function CategoryScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { alert } = useModal();
   const { draft, toggleCategory, reset } = useSocialSignUp();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { mutate: signUp } = useSocialSignUpMutation();
@@ -54,7 +55,7 @@ export default function CategoryScreen() {
         },
         onError: (error: any) => {
           setIsSubmitting(false);
-          Alert.alert('Sign Up Failed', error?.message || 'Please try again.');
+          alert({ title: '회원가입 실패', message: error?.message || '다시 시도해주세요.', type: 'error' });
         },
       }
     );
@@ -66,8 +67,9 @@ export default function CategoryScreen() {
       <ScrollView
         contentContainerStyle={[
           styles.content,
-          { paddingTop: insets.top + 40, paddingBottom: insets.bottom + 20 },
+          { paddingTop: insets.top + 16 },
         ]}
+        showsVerticalScrollIndicator={false}
       >
         <View style={styles.header}>
           <Text style={styles.stepIndicator}>Step 3 of 3</Text>
@@ -82,13 +84,17 @@ export default function CategoryScreen() {
             <SelectionCard
               key={category.id}
               title={category.title}
-              iconName={category.icon}
+              iconName={category.icon as any}
               isSelected={draft?.categories.includes(category.id) ?? false}
               onPress={() => toggleCategory(category.id)}
             />
           ))}
         </View>
+      </ScrollView>
 
+      <View
+        style={[styles.buttonContainer, { paddingBottom: insets.bottom + 20 }]}
+      >
         <TouchableOpacity
           style={[
             styles.button,
@@ -105,7 +111,7 @@ export default function CategoryScreen() {
             <Text style={styles.buttonText}>Complete Sign Up</Text>
           )}
         </TouchableOpacity>
-      </ScrollView>
+      </View>
     </View>
   );
 }
@@ -141,7 +147,10 @@ const styles = StyleSheet.create({
     lineHeight: 24,
   },
   list: {
-    marginBottom: 40,
+    marginBottom: 24,
+  },
+  buttonContainer: {
+    paddingHorizontal: 24,
   },
   button: {
     backgroundColor: Colors.primary,
@@ -149,7 +158,6 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 'auto',
   },
   buttonDisabled: {
     backgroundColor: Colors.surfaceLight,

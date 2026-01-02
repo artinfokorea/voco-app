@@ -1,4 +1,5 @@
 import { LIVEKIT_CONFIG } from '@/constants/livekit';
+import { useModal } from '@/contexts/ModalContext';
 import { fetchLiveKitToken } from '@/utils/livekit/token';
 import { tokenStorage } from '@/utils/token';
 import { AudioSession, registerGlobals } from '@livekit/react-native';
@@ -11,7 +12,6 @@ import {
   TrackPublication,
 } from 'livekit-client';
 import { useCallback, useEffect, useState } from 'react';
-import { Alert } from 'react-native';
 
 // LiveKit 전역 설정 등록
 registerGlobals();
@@ -40,6 +40,7 @@ export interface UseLiveKitReturn {
   isConnected: boolean;
   agentIdentity: string | null;
   isAgentConnected: boolean;
+  scenarioName: string | null;
 
   // 입력 상태
   serverUrl: string;
@@ -57,12 +58,13 @@ export interface UseLiveKitReturn {
   messages: ChatMessage[];
 
   // 액션
-  connect: (scenarioId: number) => Promise<void>;
+  connect: (scenarioId: number, scenarioName: string) => Promise<void>;
   disconnect: () => Promise<void>;
   toggleMic: () => Promise<void>;
 }
 
 export function useLiveKit(): UseLiveKitReturn {
+  const { alert } = useModal();
   const [serverUrl, setServerUrl] = useState(LIVEKIT_CONFIG.serverUrl);
   const [token, setToken] = useState('');
   const [roomName, setRoomName] = useState(LIVEKIT_CONFIG.defaultRoom);
@@ -73,6 +75,7 @@ export function useLiveKit(): UseLiveKitReturn {
   const [isConnecting, setIsConnecting] = useState(false);
   const [localIdentity, setLocalIdentity] = useState<string>('');
   const [agentIdentity, setAgentIdentity] = useState<string | null>(null);
+  const [scenarioName, setScenarioName] = useState<string | null>(null);
 
   // 음성 통화 상태
   const [isMicEnabled, setIsMicEnabled] = useState(true);
@@ -242,7 +245,6 @@ export function useLiveKit(): UseLiveKitReturn {
         RoomEvent.ParticipantConnected,
         (participant: RemoteParticipant) => {
           setParticipants((prev) => [...prev, participant.identity]);
-          addSystemMessage(`${participant.identity}님이 입장했습니다.`);
           logLiveKit('participant connected', {
             identity: participant.identity,
             sid: participant.sid,
@@ -260,7 +262,6 @@ export function useLiveKit(): UseLiveKitReturn {
           setParticipants((prev) =>
             prev.filter((p) => p !== participant.identity)
           );
-          addSystemMessage(`${participant.identity}님이 퇴장했습니다.`);
           logLiveKit('participant disconnected', {
             identity: participant.identity,
             sid: participant.sid,
@@ -384,61 +385,60 @@ export function useLiveKit(): UseLiveKitReturn {
         });
       });
     },
-    [
-      addSystemMessage,
-      dumpRoomSnapshot,
-      addTranscriptionMessage,
-      syncAgentFromRoom,
-    ]
+    [dumpRoomSnapshot, addTranscriptionMessage, syncAgentFromRoom]
   );
 
   // 방 연결
-  const connect = useCallback(async (scenarioId: number) => {
-    if (!serverUrl) {
-      Alert.alert('오류', 'LiveKit 서버 URL을 입력해주세요.');
-      return;
-    }
+  const connect = useCallback(
+    async (scenarioId: number, name: string) => {
+      if (!serverUrl) {
+        alert({ title: '오류', message: 'LiveKit 서버 URL을 입력해주세요.', type: 'error' });
+        return;
+      }
 
-    // 로그인 상태 확인
-    const accessToken = await tokenStorage.getAccessToken();
-    if (!accessToken) {
-      Alert.alert('오류', '로그인이 필요합니다.');
-      return;
-    }
+      // 로그인 상태 확인
+      const accessToken = await tokenStorage.getAccessToken();
+      if (!accessToken) {
+        alert({ title: '오류', message: '로그인이 필요합니다.', type: 'error' });
+        return;
+      }
 
-    try {
-      setIsConnecting(true);
+      try {
+        setIsConnecting(true);
+        setScenarioName(name);
 
-      // API에서 토큰과 룸 이름 가져오기
-      const { token: liveKitToken, roomName: serverRoomName } =
-        await fetchLiveKitToken(scenarioId);
-      setToken(liveKitToken);
-      setRoomName(serverRoomName);
+        // API에서 토큰과 룸 이름 가져오기
+        const { token: liveKitToken, roomName: serverRoomName } =
+          await fetchLiveKitToken(scenarioId);
+        setToken(liveKitToken);
+        setRoomName(serverRoomName);
 
-      const newRoom = new Room();
-      setupRoomEvents(newRoom);
+        const newRoom = new Room();
+        setupRoomEvents(newRoom);
 
-      logLiveKit('connect', { serverUrl, roomName: serverRoomName });
-      await newRoom.connect(serverUrl, liveKitToken);
-      await newRoom.localParticipant.setMicrophoneEnabled(true);
-      setIsMicEnabled(true);
+        logLiveKit('connect', { serverUrl, roomName: serverRoomName });
+        await newRoom.connect(serverUrl, liveKitToken);
+        await newRoom.localParticipant.setMicrophoneEnabled(true);
+        setIsMicEnabled(true);
 
-      const existingParticipants = Array.from(
-        newRoom.remoteParticipants.values()
-      ).map((p) => p.identity);
-      setParticipants(existingParticipants);
-      syncAgentFromRoom(newRoom);
+        const existingParticipants = Array.from(
+          newRoom.remoteParticipants.values()
+        ).map((p) => p.identity);
+        setParticipants(existingParticipants);
+        syncAgentFromRoom(newRoom);
 
-      setRoom(newRoom);
-      addSystemMessage('방에 연결되었습니다.');
-    } catch (error) {
-      console.error('연결 실패:', error);
-      logLiveKit('connect error', String(error));
-      Alert.alert('연결 실패', '방 연결에 실패했습니다.');
-    } finally {
-      setIsConnecting(false);
-    }
-  }, [serverUrl, setupRoomEvents, addSystemMessage, syncAgentFromRoom]);
+        setRoom(newRoom);
+      } catch (error) {
+        console.error('연결 실패:', error);
+        logLiveKit('connect error', String(error));
+        alert({ title: '연결 실패', message: '방 연결에 실패했습니다.', type: 'error' });
+        setScenarioName(null);
+      } finally {
+        setIsConnecting(false);
+      }
+    },
+    [serverUrl, setupRoomEvents, syncAgentFromRoom, alert]
+  );
 
   // 방 연결 해제
   const disconnect = useCallback(async () => {
@@ -450,6 +450,7 @@ export function useLiveKit(): UseLiveKitReturn {
       setMessages([]);
       logLiveKit('local disconnect');
       setAgentIdentity(null);
+      setScenarioName(null);
     }
   }, [room]);
 
@@ -471,6 +472,7 @@ export function useLiveKit(): UseLiveKitReturn {
     isConnected,
     agentIdentity,
     isAgentConnected: Boolean(agentIdentity),
+    scenarioName,
     serverUrl,
     setServerUrl,
     token,
